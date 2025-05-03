@@ -188,7 +188,16 @@ export default function Chat() {
   };
 
   return (
-    <main className="h-screen flex flex-col" style={{ background: "#181614" }}>
+
+    <main className="h-screen flex flex-col" style={{ background: '#181614' }}>
+      {/* Finn top bar */}
+      <div className="w-full flex justify-center items-center py-4 mb-2">
+        <img src="/Finn_Circle.png" alt="Finn" className="w-16 h-16 mr-4" style={{ borderRadius: '50%' }} />
+        <div className="flex flex-col justify-center">
+          <span className="text-white text-2xl font-bold leading-tight">Finn</span>
+          <span className="text-white text-sm font-light tracking-wide mt-1">sell shit fast agent</span>
+        </div>
+      </div>
       <ScrollArea ref={scrollRef} className="flex-1 overflow-x-hidden">
         <div className="flex flex-col gap-1 p-2 max-w-3xl mx-auto">
           {conversation.map((msg, i) => {
