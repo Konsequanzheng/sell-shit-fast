@@ -86,19 +86,34 @@ export default function Chat() {
   };
 
   const sendMessage = () => {
-    if (userInput) {
-      addMessage({ message: userInput, type: "user" });
+    if (userInput || uploadedImages.length > 0) {
+      let imageUrls: string[] = [];
+      if (uploadedImages.length > 0) {
+        imageUrls = uploadedImages.map((file) => URL.createObjectURL(file));
+      }
+      addMessage({ message: userInput, type: "user", images: imageUrls });
       setUserInput("");
+      setUploadedImages([]);
       setIsThinking(true);
       addMessage({ message: "...", type: "bot", isThinking: true });
       setTimeout(() => {
         setIsThinking(false);
         setConversation((old) => [
           ...old.slice(0, -1),
-          {
-            message: "Thanks! I have all the info I need to create your listing.",
-            type: "bot",
-          },
+          userInput && imageUrls.length > 0
+            ? {
+                message: "Thanks! I have all the info I need to create your listing.",
+                type: "bot",
+              }
+            : imageUrls.length > 0
+            ? {
+                message: "Great! What's the frame height and condition of the bike?",
+                type: "bot",
+              }
+            : {
+                message: "Thanks! I have all the info I need to create your listing.",
+                type: "bot",
+              },
         ]);
       }, 1500);
     }
@@ -176,12 +191,6 @@ export default function Chat() {
                 className="w-20 h-20 object-cover rounded-lg border border-gray-700"
               />
             ))}
-            <Button
-              onClick={sendImages}
-              className="h-10 px-4 bg-[#2196f3] text-white rounded-lg ml-2"
-            >
-              Send
-            </Button>
           </div>
         )}
         <div className="p-8">
