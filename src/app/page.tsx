@@ -16,12 +16,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PlusIcon } from "@radix-ui/react-icons";
-import { KeyboardEvent, useRef, useState } from "react";
+import { KeyboardEvent, useRef, useState, useEffect } from "react";
 import Link from "next/link";
+import React from "react";
 
 interface Message {
-  message: String;
+  message: string;
   type: "bot" | "user";
+  images?: string[];
+  isThinking?: boolean;
 }
 
 export default function Chat() {
@@ -29,6 +32,17 @@ export default function Chat() {
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const [userInput, setUserInput] = useState("");
   const [conversation, setConversation] = useState<Message[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<File[]>([]);
+  const [isThinking, setIsThinking] = useState(false);
+
+  useEffect(() => {
+    setConversation([
+      {
+        message: "What can I sell fast for you?",
+        type: "bot",
+      },
+    ]);
+  }, []);
 
   const addMessage = (message: Message) => {
     setConversation((oldArray: Message[]) => [...oldArray, message]);
@@ -51,18 +65,42 @@ export default function Chat() {
     }
   };
 
+  const sendImages = () => {
+    if (uploadedImages.length > 0) {
+      const imageUrls = uploadedImages.map((file) => URL.createObjectURL(file));
+      addMessage({ message: "", type: "user", images: imageUrls });
+      setUploadedImages([]);
+      setIsThinking(true);
+      addMessage({ message: "...", type: "bot", isThinking: true });
+      setTimeout(() => {
+        setIsThinking(false);
+        setConversation((old) => [
+          ...old.slice(0, -1),
+          {
+            message: "Great! What's the frame height and condition of the bike?",
+            type: "bot",
+          },
+        ]);
+      }, 1500);
+    }
+  };
+
   const sendMessage = () => {
     if (userInput) {
       addMessage({ message: userInput, type: "user" });
-      setUserInput(""); // clear the textarea
-
-      // Here's is where you would put your request to the
-      // chat bot server, a reply from the server should be
-      // added using the function: addMessage({ message: "ok", type: "bot" });
-      // for now we will only simulate the reply
+      setUserInput("");
+      setIsThinking(true);
+      addMessage({ message: "...", type: "bot", isThinking: true });
       setTimeout(() => {
-        addMessage({ message: "ok", type: "bot" });
-      }, (Math.floor(Math.random() * (15 - 10 + 1)) + 10) * 100);
+        setIsThinking(false);
+        setConversation((old) => [
+          ...old.slice(0, -1),
+          {
+            message: "Thanks! I have all the info I need to create your listing.",
+            type: "bot",
+          },
+        ]);
+      }, 1500);
     }
   };
 
@@ -73,97 +111,53 @@ export default function Chat() {
     }
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setUploadedImages(Array.from(e.target.files));
+    }
+  };
+
   return (
-    <main className="h-screen flex flex-col bg-black">
-      <div>
-        <div className="bg-gray-900 h-10 flex gap-3 items-center px-3">
-          <div>
-            <Link href="/">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-white"
-              >
-                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                <path d="M21 3l-5 9h5l-6.891 7.086a6.5 6.5 0 1 1 -8.855 -9.506l7.746 -6.58l-1 5l9 -5z" />
-                <path d="M9.5 14.5m-2.5 0a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0 -5 0" />
-              </svg>
-            </Link>
-          </div>
-          <div className="flex-1"></div>
-          <DropdownMenu>
-            <DropdownMenuTrigger className="outline-none">
-              <Avatar className="w-6 h-6 bg-gray-700">
-                <AvatarImage src="avatar/01.png" />
-                <AvatarFallback className="text-white">CN</AvatarFallback>
-              </Avatar>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              alignOffset={-5}
-              className="bg-gray-900 text-white"
-            >
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Profile</DropdownMenuItem>
-              <DropdownMenuItem>Billing</DropdownMenuItem>
-              <DropdownMenuItem>Team</DropdownMenuItem>
-              <DropdownMenuItem>Subscription</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        <div className="shrink-0 bg-gray-800 h-[1px] w-full"></div>
-      </div>
+    <main className="h-screen flex flex-col" style={{ background: '#181614' }}>
       <ScrollArea ref={scrollRef} className="flex-1 overflow-x-hidden">
         <div className="flex flex-col gap-1 p-2 max-w-3xl mx-auto">
           {conversation.map((msg, i) => {
             return (
               <div key={i} className="flex gap-2 first:mt-2">
-                {msg.type === "bot" && (
-                  <>
-                    {conversation[i - 1] &&
-                    conversation[i - 1].type === "bot" ? (
-                      <div className={`w-6 h-6`}></div>
+                {msg.type === "bot" ? (
+                  <div
+                    className="w-full overflow-hidden p-4 rounded-[20px] text-white relative font-medium max-w-[60%] mr-auto"
+                    style={{
+                      border: "3px solid transparent",
+                      borderRadius: "20px",
+                      background:
+                        "linear-gradient(#2C2C2E, #2C2C2E) padding-box, linear-gradient(to right, #4fc3f7, #81c784, #ffeb3b, #ff9800, #f06292) border-box",
+                      backgroundClip: "padding-box, border-box",
+                    }}
+                  >
+                    {msg.isThinking ? (
+                      <span className="inline-block animate-pulse text-2xl">...</span>
                     ) : (
-                      <Avatar className={`w-6 h-6 bg-gray-700`}>
-                        <AvatarImage src="avatar/02.png" />
-                        <AvatarFallback className="text-white">
-                          .ˍ.
-                        </AvatarFallback>
-                      </Avatar>
+                      msg.message
                     )}
-                  </>
-                )}
-                <div
-                  className={`max-w-[60%] flex flex-col ${
-                    msg.type === "bot"
-                      ? "bg-gray-800 text-white mr-auto"
-                      : "text-white bg-gray-900 ml-auto"
-                  } items-start gap-2 rounded-lg border border-gray-700 p-2 text-left text-sm transition-all whitespace-pre-wrap`}
-                >
-                  {msg.message}
-                </div>
-                {msg.type === "user" && (
-                  <>
-                    {conversation[i - 1] &&
-                    conversation[i - 1].type === "user" ? (
-                      <div className={`w-6 h-6`}></div>
-                    ) : (
-                      <Avatar className={`w-6 h-6 bg-gray-700`}>
-                        <AvatarImage src="avatar/01.png" />
-                        <AvatarFallback className="text-white">
-                          .ˍ.
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
-                  </>
+                  </div>
+                ) : msg.images && msg.images.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 ml-auto max-w-[60%]">
+                    {msg.images.map((src, idx) => (
+                      <img
+                        key={idx}
+                        src={src}
+                        alt={`user-upload-${idx}`}
+                        className="w-32 h-32 object-cover rounded-lg border border-gray-700"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div
+                    className="max-w-[60%] flex flex-col text-white bg-[#2196f3] ml-auto items-start gap-2 rounded-[20px] p-4 text-left text-base font-medium transition-all whitespace-pre-wrap"
+                  >
+                    {msg.message}
+                  </div>
                 )}
               </div>
             );
@@ -172,54 +166,83 @@ export default function Chat() {
         <div ref={messagesEndRef} className="mb-2"></div>
       </ScrollArea>
       <div className="w-full sm:max-w-3xl mx-auto">
-        <div className="bg-gray-900 sm:rounded-t-md border-t sm:border border-gray-700 shadow-lg">
-          <div className="p-4">
-            <div className="flex flex-row gap-3 p-4 border border-gray-700 rounded-t-md">
-              <div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger className="outline-none">
-                    <div className="h-8 w-8 p-0 rounded-full shadow-sm border border-gray-700 flex items-center justify-center bg-gray-800">
-                      <PlusIcon className="h-4 w-4 text-white" />
-                    </div>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="start"
-                    alignOffset={-10}
-                    className="bg-gray-900 text-white"
-                  >
-                    <DropdownMenuLabel>More options</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>Reset</DropdownMenuItem>
-                    <DropdownMenuItem>
-                      Attach <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              <AutosizeTextarea
-                className="flex-1 outline-none border-0 bg-gray-800 text-white placeholder-gray-400"
-                placeholder="Type here ..."
-                minHeight={25}
-                maxHeight={55}
-                rows={1}
-                onKeyDown={(e) => handleEnter(e)}
-                value={userInput}
-                onChange={(e) => setUserInput(e.target.value)}
+        {uploadedImages.length > 0 && (
+          <div className="flex gap-2 mb-4 flex-wrap">
+            {uploadedImages.map((file, idx) => (
+              <img
+                key={idx}
+                src={URL.createObjectURL(file)}
+                alt={`upload-preview-${idx}`}
+                className="w-20 h-20 object-cover rounded-lg border border-gray-700"
               />
-              <Button
-                onClick={() => sendMessage()}
-                className="h-8 w-8 p-0 bg-gray-800 hover:bg-gray-700"
+            ))}
+            <Button
+              onClick={sendImages}
+              className="h-10 px-4 bg-[#2196f3] text-white rounded-lg ml-2"
+            >
+              Send
+            </Button>
+          </div>
+        )}
+        <div className="p-8">
+          <div
+            className="flex flex-row items-center gap-4 border-none px-4 py-3"
+            style={{
+              border: "3px solid transparent",
+              borderRadius: "40px",
+              background:
+                "linear-gradient(#262628, #262628) padding-box, linear-gradient(to right, #4fc3f7, #81c784, #ffeb3b, #ff9800, #f06292) border-box",
+              backgroundClip: "padding-box, border-box",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => document.getElementById('image-upload')?.click()}
+              className="flex items-center justify-center h-12 w-12 rounded-full focus:outline-none"
+              style={{ color: '#2196f3', fontSize: 32 }}
+              tabIndex={0}
+              aria-label="Upload images"
+            >
+              <PlusIcon className="h-8 w-8" />
+            </button>
+            <input
+              id="image-upload"
+              type="file"
+              accept="image/*"
+              multiple
+              style={{ display: 'none' }}
+              onChange={handleImageUpload}
+            />
+            <AutosizeTextarea
+              className="flex-1 outline-none border-0 bg-transparent text-white placeholder-gray-400 text-2xl px-0"
+              placeholder="What can Finn sell for you?"
+              minHeight={25}
+              maxHeight={55}
+              rows={1}
+              onKeyDown={(e) => handleEnter(e)}
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+            />
+            <Button
+              onClick={sendMessage}
+              className="h-12 w-12 p-0 bg-[#2196f3] hover:bg-blue-600 rounded-full flex items-center justify-center"
+              style={{ minWidth: 48, minHeight: 48 }}
+              aria-label="Send message"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-6 w-6 text-white"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 256 256"
-                  fill="currentColor"
-                  className="h-4 w-4 text-white"
-                >
-                  <path d="M200 32v144a8 8 0 0 1-8 8H67.31l34.35 34.34a8 8 0 0 1-11.32 11.32l-48-48a8 8 0 0 1 0-11.32l48-48a8 8 0 0 1 11.32 11.32L67.31 168H184V32a8 8 0 0 1 16 0Z"></path>
-                </svg>
-              </Button>
-            </div>
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+            </Button>
           </div>
         </div>
       </div>
