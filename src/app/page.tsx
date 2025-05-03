@@ -279,7 +279,7 @@ export default function Chat() {
             <input
               id="image-upload"
               type="file"
-              accept="image/*"
+              accept=".jpg,.jpeg"
               multiple
               style={{ display: "none" }}
               onChange={handleImageUpload}
