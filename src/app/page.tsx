@@ -34,8 +34,16 @@ export default function Chat() {
   const [conversation, setConversation] = useState<Message[]>([]);
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [isThinking, setIsThinking] = useState(false);
+  const [paymentLink, setPaymentLink] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string>("");
 
   useEffect(() => {
+    // Generate a unique user ID when component mounts
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2, 8);
+    const newUserId = `user_${timestamp}_${random}`;
+    setUserId(newUserId);
+
     setConversation([
       {
         message: "What can I sell fast for you?",
@@ -45,18 +53,23 @@ export default function Chat() {
   }, []);
 
   useEffect(() => {
+    if (!userId) return;
+
     // Poll for new messages every 2 seconds
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch("/api/webhook");
+        console.log("Polling for messages for user:", userId);
+        const response = await fetch(`/api/webhook?user_id=${userId}`);
         const data = await response.json();
+        console.log("Received messages:", data);
 
         if (data.messages && data.messages.length > 0) {
           data.messages.forEach((message: any) => {
+            console.log("Processing message:", message);
             addMessage({
               message: message.text || "New message received",
               type: "bot",
-              images: message.images,
+              images: message.images || [],
             });
           });
         }
@@ -66,7 +79,7 @@ export default function Chat() {
     }, 2000);
 
     return () => clearInterval(pollInterval);
-  }, []);
+  }, [userId]);
 
   const addMessage = (message: Message) => {
     setConversation((oldArray: Message[]) => [...oldArray, message]);
@@ -151,7 +164,7 @@ export default function Chat() {
       addMessage({ message: "...", type: "bot", isThinking: true });
 
       const formData = new FormData();
-      formData.append("user_id", "alice123"); // You might want to make this dynamic
+      formData.append("user_id", userId); // Use the dynamic user ID
       formData.append("text", userInput);
       uploadedImages.forEach((file) => {
         formData.append("images", file);
