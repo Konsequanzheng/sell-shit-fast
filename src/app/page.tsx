@@ -82,10 +82,16 @@ export default function Chat() {
       });
 
       try {
-        const response = await fetch("http://localhost:8000/chat-message", {
-          method: "POST",
-          body: formData,
-        });
+        const response = await fetch(
+          "http://ec2-52-90-147-75.compute-1.amazonaws.com:8000/chat-message",
+          {
+            method: "POST",
+            headers: {
+              Authorization: "Bearer our-token-CTLCajMkss-E9MKanF7xq",
+            },
+            body: formData,
+          }
+        );
         const data = await response.json();
 
         setIsThinking(false);
@@ -131,10 +137,16 @@ export default function Chat() {
       });
 
       try {
-        const response = await fetch("http://localhost:8000/chat-message", {
-          method: "POST",
-          body: formData,
-        });
+        const response = await fetch(
+          "http://ec2-52-90-147-75.compute-1.amazonaws.com:8000/chat-message",
+          {
+            method: "POST",
+            headers: {
+              Authorization: "Bearer our-token-CTLCajMkss-E9MKanF7xq",
+            },
+            body: formData,
+          }
+        );
         const data = await response.json();
 
         setIsThinking(false);
