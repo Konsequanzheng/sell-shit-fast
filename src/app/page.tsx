@@ -44,6 +44,30 @@ export default function Chat() {
     ]);
   }, []);
 
+  useEffect(() => {
+    // Poll for new messages every 2 seconds
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch("/api/webhook");
+        const data = await response.json();
+
+        if (data.messages && data.messages.length > 0) {
+          data.messages.forEach((message: any) => {
+            addMessage({
+              message: message.text || "New message received",
+              type: "bot",
+              images: message.images,
+            });
+          });
+        }
+      } catch (error) {
+        console.error("Error polling for messages:", error);
+      }
+    }, 2000);
+
+    return () => clearInterval(pollInterval);
+  }, []);
+
   const addMessage = (message: Message) => {
     setConversation((oldArray: Message[]) => [...oldArray, message]);
     if (message.type === "user") {
