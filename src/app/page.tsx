@@ -65,27 +65,53 @@ export default function Chat() {
     }
   };
 
-  const sendImages = () => {
+  const sendImages = async () => {
     if (uploadedImages.length > 0) {
       const imageUrls = uploadedImages.map((file) => URL.createObjectURL(file));
-      addMessage({ message: "", type: "user", images: imageUrls });
+      addMessage({ message: userInput, type: "user", images: imageUrls });
       setUploadedImages([]);
+      setUserInput("");
       setIsThinking(true);
       addMessage({ message: "...", type: "bot", isThinking: true });
-      setTimeout(() => {
+
+      const formData = new FormData();
+      formData.append("user_id", "alice123"); // You might want to make this dynamic
+      formData.append("text", userInput || "");
+      uploadedImages.forEach((file) => {
+        formData.append("images", file);
+      });
+
+      try {
+        const response = await fetch("http://localhost:8000/chat-message", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await response.json();
+
         setIsThinking(false);
         setConversation((old) => [
           ...old.slice(0, -1),
           {
-            message: "Great! What's the frame height and condition of the bike?",
+            message: data.reply,
             type: "bot",
           },
         ]);
-      }, 1500);
+      } catch (error) {
+        console.error("Error sending images:", error);
+        setIsThinking(false);
+        setConversation((old) => [
+          ...old.slice(0, -1),
+          {
+            message:
+              "Sorry, there was an error processing your images. Please try again.",
+            type: "bot",
+          },
+        ]);
+      }
     }
   };
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (userInput || uploadedImages.length > 0) {
       let imageUrls: string[] = [];
       if (uploadedImages.length > 0) {
@@ -96,26 +122,41 @@ export default function Chat() {
       setUploadedImages([]);
       setIsThinking(true);
       addMessage({ message: "...", type: "bot", isThinking: true });
-      setTimeout(() => {
+
+      const formData = new FormData();
+      formData.append("user_id", "alice123"); // You might want to make this dynamic
+      formData.append("text", userInput);
+      uploadedImages.forEach((file) => {
+        formData.append("images", file);
+      });
+
+      try {
+        const response = await fetch("http://localhost:8000/chat-message", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await response.json();
+
         setIsThinking(false);
         setConversation((old) => [
           ...old.slice(0, -1),
-          userInput && imageUrls.length > 0
-            ? {
-                message: "Thanks! I have all the info I need to create your listing.",
-                type: "bot",
-              }
-            : imageUrls.length > 0
-            ? {
-                message: "Great! What's the frame height and condition of the bike?",
-                type: "bot",
-              }
-            : {
-                message: "Thanks! I have all the info I need to create your listing.",
-                type: "bot",
-              },
+          {
+            message: data.reply,
+            type: "bot",
+          },
         ]);
-      }, 1500);
+      } catch (error) {
+        console.error("Error sending message:", error);
+        setIsThinking(false);
+        setConversation((old) => [
+          ...old.slice(0, -1),
+          {
+            message:
+              "Sorry, there was an error processing your message. Please try again.",
+            type: "bot",
+          },
+        ]);
+      }
     }
   };
 
@@ -128,12 +169,14 @@ export default function Chat() {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setUploadedImages(Array.from(e.target.files));
+      setUploadedImages((prev) => [...prev, ...Array.from(e.target.files!)]);
+      // Reset the input so the same file can be selected again
+      e.target.value = "";
     }
   };
 
   return (
-    <main className="h-screen flex flex-col" style={{ background: '#181614' }}>
+    <main className="h-screen flex flex-col" style={{ background: "#181614" }}>
       <ScrollArea ref={scrollRef} className="flex-1 overflow-x-hidden">
         <div className="flex flex-col gap-1 p-2 max-w-3xl mx-auto">
           {conversation.map((msg, i) => {
@@ -151,26 +194,33 @@ export default function Chat() {
                     }}
                   >
                     {msg.isThinking ? (
-                      <span className="inline-block animate-pulse text-2xl">...</span>
+                      <span className="inline-block animate-pulse text-2xl">
+                        ...
+                      </span>
                     ) : (
                       msg.message
                     )}
                   </div>
                 ) : msg.images && msg.images.length > 0 ? (
-                  <div className="flex flex-wrap gap-2 ml-auto max-w-[60%]">
-                    {msg.images.map((src, idx) => (
-                      <img
-                        key={idx}
-                        src={src}
-                        alt={`user-upload-${idx}`}
-                        className="w-32 h-32 object-cover rounded-lg border border-gray-700"
-                      />
-                    ))}
+                  <div className="flex flex-col gap-2 ml-auto max-w-[60%]">
+                    {msg.message && (
+                      <div className="w-fit flex flex-col text-white bg-[#2196f3] items-start gap-2 rounded-[20px] p-4 text-left text-base font-medium transition-all whitespace-pre-wrap break-words">
+                        {msg.message}
+                      </div>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {msg.images.map((src, idx) => (
+                        <img
+                          key={idx}
+                          src={src}
+                          alt={`user-upload-${idx}`}
+                          className="w-32 h-32 object-cover rounded-lg border border-gray-700"
+                        />
+                      ))}
+                    </div>
                   </div>
                 ) : (
-                  <div
-                    className="max-w-[60%] flex flex-col text-white bg-[#2196f3] ml-auto items-start gap-2 rounded-[20px] p-4 text-left text-base font-medium transition-all whitespace-pre-wrap"
-                  >
+                  <div className="max-w-[60%] flex flex-col text-white bg-[#2196f3] ml-auto items-start gap-2 rounded-[20px] p-4 text-left text-base font-medium transition-all whitespace-pre-wrap">
                     {msg.message}
                   </div>
                 )}
@@ -184,12 +234,24 @@ export default function Chat() {
         {uploadedImages.length > 0 && (
           <div className="flex gap-2 mb-4 flex-wrap">
             {uploadedImages.map((file, idx) => (
-              <img
-                key={idx}
-                src={URL.createObjectURL(file)}
-                alt={`upload-preview-${idx}`}
-                className="w-20 h-20 object-cover rounded-lg border border-gray-700"
-              />
+              <div key={idx} className="relative">
+                <img
+                  src={URL.createObjectURL(file)}
+                  alt={`upload-preview-${idx}`}
+                  className="w-20 h-20 object-cover rounded-lg border border-gray-700"
+                />
+                <button
+                  onClick={() => {
+                    setUploadedImages((prev) =>
+                      prev.filter((_, i) => i !== idx)
+                    );
+                  }}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
+                  aria-label="Remove image"
+                >
+                  ×
+                </button>
+              </div>
             ))}
           </div>
         )}
@@ -206,9 +268,9 @@ export default function Chat() {
           >
             <button
               type="button"
-              onClick={() => document.getElementById('image-upload')?.click()}
+              onClick={() => document.getElementById("image-upload")?.click()}
               className="flex items-center justify-center h-12 w-12 rounded-full focus:outline-none"
-              style={{ color: '#2196f3', fontSize: 32 }}
+              style={{ color: "#2196f3", fontSize: 32 }}
               tabIndex={0}
               aria-label="Upload images"
             >
@@ -219,7 +281,7 @@ export default function Chat() {
               type="file"
               accept="image/*"
               multiple
-              style={{ display: 'none' }}
+              style={{ display: "none" }}
               onChange={handleImageUpload}
             />
             <AutosizeTextarea
